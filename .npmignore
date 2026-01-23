@@ -1,0 +1,12 @@
+src/
+test/
+*.ts
+*.test.ts
+*.spec.ts
+*.log
+tsconfig.json
+vitest.config.ts
+.npmignore
+.gitignore
+package-lock.json
+.vscode/
