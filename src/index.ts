@@ -3,7 +3,7 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export interface LogEntry {
   level: LogLevel;
   message: string;
-  timestamp: Date;
+  timestamp: string;
   meta?: Record<string, unknown>;
 }
 
@@ -94,14 +94,15 @@ class LoggerCore {
     );
   }
 
-  async emit(context: Record<string, unknown>, level: LogLevel, message: string, meta?: Record<string, unknown>) {
+  async emit(context: Record<string, unknown>, level: LogLevel, message: string, meta?: Record<string, unknown> | undefined) {
     if (!this.shouldLog(level)) return;
 
+    const combinedMeta = { ...context, ...(meta ?? {}) };
     const entry: LogEntry = {
       level,
       message,
-      timestamp: new Date(),
-      meta: { ...context, ...(meta ?? {}) },
+      timestamp: new Date().toISOString(),
+      meta: Object.keys(combinedMeta).length ? combinedMeta : undefined,
     };
 
     if (this.testMode && this.testLogBuffer.length < MAX_BUFFER) {
@@ -119,16 +120,21 @@ class LoggerCore {
   async logRaw(entry: LogEntry) {
     if (!this.shouldLog(entry.level)) return;
 
+    const normalized: LogEntry = {
+      ...entry,
+      meta: entry.meta && Object.keys(entry.meta).length ? entry.meta : undefined,
+    };
+
     if (this.testMode && this.testLogBuffer.length < MAX_BUFFER) {
-      this.testLogBuffer.push(entry);
+      this.testLogBuffer.push(normalized);
     }
 
     if (this.isBuffering) {
-      if (this.logBuffer.length < MAX_BUFFER) this.logBuffer.push(entry);
+      if (this.logBuffer.length < MAX_BUFFER) this.logBuffer.push(normalized);
       return;
     }
 
-    await Promise.all(this.transports.map(t => this.safeLog(t, entry)));
+    await Promise.all(this.transports.map(t => this.safeLog(t, normalized)));
   }
 
   async flush() {
