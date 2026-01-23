@@ -1,23 +1,12 @@
 {
   "name": "logger-kit",
   "version": "1.0.0",
-  "description": "A lightweight, pluggable, and testable logger for modern Node.js apps.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./transports/*": "./dist/transports/*.js"
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts",
-    "dev": "tsc --watch",
-    "test": "vitest"
+  "description": "A lightweight, pluggable, and testable logger for modern apps (Node + browser).",
+  "license": "MIT",
+  "author": "Damien Smith",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/logger-kit"
   },
   "keywords": [
     "logger",
@@ -25,22 +14,59 @@
     "typescript",
     "transport",
     "pluggable",
-    "contextual"
+    "context"
   ],
-  "author": "Your Name",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/your-username/logger-kit"
+  "engines": {
+    "node": ">=18"
   },
+
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+
+    "./formatter": {
+      "types": "./dist/formatter.d.ts",
+      "import": "./dist/formatter.js",
+      "require": "./dist/formatter.cjs"
+    },
+
+    "./transports/*": {
+      "types": "./dist/transports/*.d.ts",
+      "import": "./dist/transports/*.js",
+      "require": "./dist/transports/*.cjs"
+    },
+
+    "./transports-node/*": {
+      "types": "./dist/transports-node/*.d.ts",
+      "import": "./dist/transports-node/*.js",
+      "require": "./dist/transports-node/*.cjs"
+    },
+
+    "./package.json": "./package.json"
+  },
+
+  "files": [
+    "dist"
+  ],
+
+  "scripts": {
+    "build": "tsup src/index.ts src/formatter.ts src/transports/*.ts src/transports-node/*.ts --format esm,cjs --dts",
+    "test": "vitest"
+  },
+
   "devDependencies": {
     "tsup": "^7.2.0",
     "typescript": "^5.2.0",
     "vitest": "^0.34.6"
   },
-  "engines": {
-    "node": ">=18"
-  },
+
   "dependencies": {
     "colorette": "^2.0.20"
   }
