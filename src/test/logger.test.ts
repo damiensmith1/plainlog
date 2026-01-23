@@ -34,7 +34,6 @@ describe('Logger', () => {
 
   it('merges context and meta', async () => {
     const scoped = logger.withContext({ user: 'alice' });
-    scoped.use(memory);
     await scoped.info('login', { ip: '1.2.3.4' });
     const log = memory.getLogs()[0];
     expect(log.meta).toEqual({ user: 'alice', ip: '1.2.3.4' });
@@ -51,10 +50,13 @@ describe('Logger', () => {
 
   it('flush disables buffering', async () => {
     logger.enableBufferMode();
-    await logger.info('message');
-    expect(logger['isBuffering']).toBe(true);
+    await logger.info('buffered message');
+    expect(memory.getLogs().length).toBe(0); // still buffering
     await logger.flush();
-    expect(logger['isBuffering']).toBe(false);
+    expect(memory.getLogs().length).toBe(1); // flushed
+    // after flush, new logs go directly to transports
+    await logger.info('direct message');
+    expect(memory.getLogs().length).toBe(2);
   });
 
   it('test mode captures logs', async () => {
@@ -74,11 +76,14 @@ describe('Logger', () => {
   });
 
   it('caps buffer in buffer mode', async () => {
+    logger.setLevel('debug');
     logger.enableBufferMode();
     for (let i = 0; i < 1100; i++) {
       await logger.debug(`b${i}`);
     }
-    expect(logger['logBuffer'].length).toBeLessThanOrEqual(1000);
+    await logger.flush();
+    // Only MAX_BUFFER entries should have been buffered and flushed
+    expect(memory.getLogs().length).toBeLessThanOrEqual(1000);
   });
 
   it('safeLog handles transport errors', async () => {
@@ -104,11 +109,8 @@ describe('Logger', () => {
     expect(spy).toHaveBeenCalledWith(expect.any(Error));
   });
 
-  it('withContext inherits transports and error handler', async () => {
-    const spy = vi.fn();
+  it('withContext shares core (transports, error handler)', async () => {
     const child = logger.withContext({ a: 1 });
-    child.setErrorHandler(spy);
-    child.use(memory);
     await child.warn('test', { b: 2 });
     const log = memory.getLogs()[0];
     expect(log.meta).toEqual({ a: 1, b: 2 });
@@ -142,5 +144,26 @@ describe('Logger', () => {
       expect.stringContaining('created transport'),
       expect.objectContaining({ level: 'info' })
     );
+  });
+
+  it('child logger shares buffer mode with parent', async () => {
+    logger.enableBufferMode();
+    const child = logger.withContext({ reqId: 'abc' });
+
+    await child.info('buffered');
+    expect(memory.getLogs().length).toBe(0);
+
+    await logger.flush();
+    expect(memory.getLogs().length).toBe(1);
+    expect(memory.getLogs()[0].meta).toEqual({ reqId: 'abc' });
+  });
+
+  it('child logger shares test mode with parent', async () => {
+    logger.enableTestMode();
+    const child = logger.withContext({ a: 1 });
+
+    await child.warn('captured');
+    expect(logger.testLogs().length).toBe(1);
+    expect(logger.testLogs()[0].meta).toEqual({ a: 1 });
   });
 });

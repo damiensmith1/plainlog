@@ -3,7 +3,7 @@ export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export interface LogEntry {
   level: LogLevel;
   message: string;
-  timestamp: string;
+  timestamp: Date;
   meta?: Record<string, unknown>;
 }
 
@@ -15,36 +15,27 @@ export type LogFormatter = (entry: LogEntry) => string;
 
 const MAX_BUFFER = 1000;
 
-export class Logger {
-  private transports: Transport[] = [];
-  private levelOrder: LogLevel[] = ['debug', 'info', 'warn', 'error'];
-  private currentLevel: LogLevel = 'debug';
-  private context: Record<string, any> = {};
-  private testMode = false;
-  private testLogBuffer: LogEntry[] = [];
-  private isBuffering = false;
-  private logBuffer: LogEntry[] = [];
-  private pendingLogs: Promise<void>[] = [];
-  private logTimeoutMs = 1000;
-  private onErrorHook?: (err: unknown) => void;
+class LoggerCore {
+  public transports: Transport[] = [];
+  public levelOrder: LogLevel[] = ['debug', 'info', 'warn', 'error'];
+  public currentLevel: LogLevel = 'debug';
 
-  constructor(
-    level: LogLevel = 'debug',
-    context: Record<string, any> = {},
-    logTimeoutMs = 1000
-  ) {
+  public testMode = false;
+  public testLogBuffer: LogEntry[] = [];
+
+  public isBuffering = false;
+  public logBuffer: LogEntry[] = [];
+
+  public logTimeoutMs = 1000;
+  public onErrorHook?: (err: unknown) => void;
+
+  constructor(level: LogLevel = 'debug', logTimeoutMs = 1000) {
     this.currentLevel = level;
-    this.context = context;
     this.logTimeoutMs = logTimeoutMs;
   }
 
-  withContext(ctx: Record<string, any>): Logger {
-    const combined = { ...this.context, ...ctx };
-    const child = new Logger(this.currentLevel, combined, this.logTimeoutMs);
-    child.transports = this.transports;
-    child.pendingLogs = this.pendingLogs;
-    child.onErrorHook = this.onErrorHook;
-    return child;
+  setLevel(level: LogLevel) {
+    this.currentLevel = level;
   }
 
   use(transport: Transport) {
@@ -53,12 +44,30 @@ export class Logger {
     }
   }
 
-  setLevel(level: LogLevel) {
-    this.currentLevel = level;
-  }
-
   setErrorHandler(fn: (err: unknown) => void) {
     this.onErrorHook = fn;
+  }
+
+  enableTestMode() {
+    this.testMode = true;
+    this.testLogBuffer.length = 0;
+  }
+
+  disableTestMode() {
+    this.testMode = false;
+    this.testLogBuffer.length = 0;
+  }
+
+  testLogs(): LogEntry[] {
+    return this.testLogBuffer;
+  }
+
+  enableBufferMode() {
+    this.isBuffering = true;
+  }
+
+  disableBufferMode() {
+    this.isBuffering = false;
   }
 
   private handleError(err: unknown) {
@@ -85,99 +94,125 @@ export class Logger {
     );
   }
 
-  private enqueue(promise: Promise<void>) {
-    this.pendingLogs.push(promise);
-    promise.finally(() => {
-      const idx = this.pendingLogs.indexOf(promise);
-      if (idx !== -1) this.pendingLogs.splice(idx, 1);
-    });
-  }
-
-  private async emitAsync(entry: LogEntry) {
-    await Promise.all(this.transports.map(t => this.safeLog(t, entry)));
-  }
-
-  private emit(level: LogLevel, message: string, meta?: any) {
+  async emit(context: Record<string, unknown>, level: LogLevel, message: string, meta?: Record<string, unknown>) {
     if (!this.shouldLog(level)) return;
 
     const entry: LogEntry = {
       level,
       message,
-      timestamp: new Date().toISOString(),
-      meta: { ...this.context, ...meta },
+      timestamp: new Date(),
+      meta: { ...context, ...(meta ?? {}) },
     };
 
     if (this.testMode && this.testLogBuffer.length < MAX_BUFFER) {
       this.testLogBuffer.push(entry);
     }
 
-    if (this.isBuffering && this.logBuffer.length < MAX_BUFFER) {
-      this.logBuffer.push(entry);
+    if (this.isBuffering) {
+      if (this.logBuffer.length < MAX_BUFFER) this.logBuffer.push(entry);
       return;
     }
 
-    this.enqueue(this.emitAsync(entry));
+    await Promise.all(this.transports.map(t => this.safeLog(t, entry)));
   }
 
-  debug(msg: string, meta?: any) {
-    this.emit('debug', msg, meta);
-  }
-  info(msg: string, meta?: any) {
-    this.emit('info', msg, meta);
-  }
-  warn(msg: string, meta?: any) {
-    this.emit('warn', msg, meta);
-  }
-  error(msg: string, meta?: any) {
-    this.emit('error', msg, meta);
-  }
-
-  log(entry: LogEntry) {
+  async logRaw(entry: LogEntry) {
     if (!this.shouldLog(entry.level)) return;
 
     if (this.testMode && this.testLogBuffer.length < MAX_BUFFER) {
       this.testLogBuffer.push(entry);
     }
 
-    if (this.isBuffering && this.logBuffer.length < MAX_BUFFER) {
-      this.logBuffer.push(entry);
+    if (this.isBuffering) {
+      if (this.logBuffer.length < MAX_BUFFER) this.logBuffer.push(entry);
       return;
     }
 
-    this.enqueue(this.emitAsync(entry));
+    await Promise.all(this.transports.map(t => this.safeLog(t, entry)));
   }
 
   async flush() {
-    await Promise.all(this.pendingLogs);
+    const entries = this.logBuffer.slice();
+    this.logBuffer.length = 0;
+    this.isBuffering = false;
 
-    for (const entry of this.logBuffer) {
-      await this.emitAsync(entry);
+    for (const entry of entries) {
+      await Promise.all(this.transports.map(t => this.safeLog(t, entry)));
     }
+  }
+}
 
-    this.logBuffer = [];
-    this.disableBufferMode();
+export class Logger {
+  private core: LoggerCore;
+  private context: Record<string, unknown>;
+
+  constructor(
+    level: LogLevel = 'debug',
+    context: Record<string, unknown> = {},
+    logTimeoutMs = 1000
+  ) {
+    this.core = new LoggerCore(level, logTimeoutMs);
+    this.context = context;
+  }
+
+  private static from(core: LoggerCore, context: Record<string, unknown>) {
+    const logger = Object.create(Logger.prototype) as Logger;
+    logger.core = core;
+    logger.context = context;
+    return logger;
+  }
+
+  withContext(ctx: Record<string, unknown>): Logger {
+    return Logger.from(this.core, { ...this.context, ...ctx });
+  }
+
+  use(transport: Transport) {
+    this.core.use(transport);
+  }
+
+  setLevel(level: LogLevel) {
+    this.core.setLevel(level);
+  }
+
+  setErrorHandler(fn: (err: unknown) => void) {
+    this.core.setErrorHandler(fn);
   }
 
   enableTestMode() {
-    this.testMode = true;
-    this.testLogBuffer = [];
+    this.core.enableTestMode();
   }
-
   disableTestMode() {
-    this.testMode = false;
-    this.testLogBuffer = [];
+    this.core.disableTestMode();
   }
-
   testLogs(): LogEntry[] {
-    return this.testLogBuffer;
+    return this.core.testLogs();
   }
 
   enableBufferMode() {
-    this.isBuffering = true;
+    this.core.enableBufferMode();
+  }
+  disableBufferMode() {
+    this.core.disableBufferMode();
+  }
+  async flush() {
+    await this.core.flush();
   }
 
-  disableBufferMode() {
-    this.isBuffering = false;
+  async debug(msg: string, meta?: Record<string, unknown>) {
+    await this.core.emit(this.context, 'debug', msg, meta);
+  }
+  async info(msg: string, meta?: Record<string, unknown>) {
+    await this.core.emit(this.context, 'info', msg, meta);
+  }
+  async warn(msg: string, meta?: Record<string, unknown>) {
+    await this.core.emit(this.context, 'warn', msg, meta);
+  }
+  async error(msg: string, meta?: Record<string, unknown>) {
+    await this.core.emit(this.context, 'error', msg, meta);
+  }
+
+  async log(entry: LogEntry) {
+    await this.core.logRaw(entry);
   }
 }
 
