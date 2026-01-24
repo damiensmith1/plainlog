@@ -1,12 +1,12 @@
 {
-  "name": "logger-kit",
+  "name": "plainlog",
   "version": "1.0.0",
   "description": "A lightweight, pluggable, and testable logger for modern apps (Node + browser).",
   "license": "MIT",
   "author": "Damien Smith",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/logger-kit"
+    "url": "https://github.com/damiensmith1/plainlog"
   },
   "keywords": [
     "logger",
