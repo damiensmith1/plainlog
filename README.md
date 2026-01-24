@@ -1,12 +1,14 @@
-# Logger Kit
+# plainlog
 
 A lightweight, pluggable, and testable logger for modern JavaScript and TypeScript apps — **designed for real codebases**, not just demos.
 
-Logger Kit works in **Node.js and the browser**, supports **context inheritance**, **buffering**, **transport safety**, and is intentionally small enough that you can actually understand it.
+plainlog works in **Node.js and the browser**, supports **context inheritance**, **buffering**, **transport safety**, and is intentionally small enough that you can actually understand it.
+
+📦 npm: https://www.npmjs.com/package/plainlog
 
 ---
 
-## Why Logger Kit Exists
+## Why plainlog Exists
 
 Most popular loggers fall into one of two camps:
 
@@ -24,9 +26,9 @@ Most popular loggers fall into one of two camps:
 * Not great for testing or small tools
 * Often feels “too low-level” for application logic
 
-### Logger Kit’s Philosophy
+### plainlog’s Philosophy
 
-Logger Kit is built around a simple idea:
+plainlog is built around a simple idea:
 
 > **Logging should be easy to reason about, easy to test, and never break your app.**
 
@@ -38,7 +40,7 @@ That means:
 * No logging failures crashing your process
 * No framework lock-in
 
-Logger Kit is especially well-suited for:
+plainlog is especially well-suited for:
 
 * application code
 * CLIs and scripts
@@ -156,7 +158,7 @@ Other node transports:
 
 ## Context Inheritance
 
-Logger Kit supports **explicit context propagation**.
+plainlog supports **explicit context propagation**.
 
 ```ts
 const base = new Logger("info", { service: "api" });
