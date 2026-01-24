@@ -6,3 +6,11 @@ dist/
 .vscode/
 .DS_Store
 *.snap
+*.tgz
+
+# Browser test artifacts
+test-browser/node_modules
+test-browser/dist
+dump.txt
+dump-deps.js
+dump-folders.js
