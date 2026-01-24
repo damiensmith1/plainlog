@@ -49,6 +49,18 @@
       "require": "./dist/transports/*.cjs"
     },
 
+    "./transports/node": {
+      "types": "./dist/transports/node/index.d.ts",
+      "import": "./dist/transports/node/index.js",
+      "require": "./dist/transports/node/index.cjs"
+    },
+
+    "./transports/node/*": {
+      "types": "./dist/transports/node/*.d.ts",
+      "import": "./dist/transports/node/*.js",
+      "require": "./dist/transports/node/*.cjs"
+    },
+
     "./package.json": "./package.json"
   },
 
@@ -57,7 +69,7 @@
   ],
 
   "scripts": {
-    "build": "tsup src/index.ts src/formatter.ts src/transports/index.ts --format esm,cjs --dts",
+    "build": "tsup src/index.ts src/formatter.ts src/transports/index.ts src/transports/node/index.ts --format esm,cjs --dts",
     "test": "vitest"
   },
 

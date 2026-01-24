@@ -77,7 +77,7 @@ class LoggerCore {
   }
 
   testLogs(): LogEntry[] {
-    return this.testLogBuffer;
+    return this.testLogBuffer.slice();
   }
 
   enableBufferMode() {
@@ -311,16 +311,16 @@ const defaultConsoleTransport: Transport = {
       : entry.level === 'warn' ? 'warn'
       : entry.level === 'debug' ? 'debug'
       : 'info';
-    console[method](`[${entry.timestamp}] [${entry.level.toUpperCase()}]`, entry.message, entry.meta ?? '');
+    const prefix = `[${entry.timestamp}] [${entry.level.toUpperCase()}]`;
+    if (entry.meta) console[method](prefix, entry.message, entry.meta);
+    else console[method](prefix, entry.message);
   }
 };
 
 function getEnvLevel(): LogLevel | undefined {
-  const env = typeof process !== 'undefined' ? process.env?.LOG_LEVEL : undefined;
-  if (env && ['debug', 'info', 'warn', 'error'].includes(env)) {
-    return env as LogLevel;
-  }
-  return undefined;
+  const p = (globalThis as any).process;
+  const env = p?.env?.LOG_LEVEL;
+  if (env && ['debug','info','warn','error'].includes(env)) return env;
 }
 
 export function createLogger(opts: CreateLoggerOptions = {}): Logger {

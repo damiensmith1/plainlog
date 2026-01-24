@@ -12,6 +12,6 @@ export class InMemoryTransport implements Transport {
   }
 
   getLogs(): LogEntry[] {
-    return this.logs;
+    return this.logs.slice();
   }
 }
