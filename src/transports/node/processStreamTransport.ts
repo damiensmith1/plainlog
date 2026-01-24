@@ -1,4 +1,4 @@
-import type { LogEntry, Transport } from '../index';
+import type { LogEntry, Transport } from '../../index';
 
 export class ProcessStreamTransport implements Transport {
   constructor(private stream: NodeJS.WriteStream = process.stdout) {}

@@ -1,5 +1,5 @@
 import { appendFile } from 'fs/promises';
-import type { LogEntry, Transport } from '../index';
+import type { LogEntry, Transport } from '../../index';
 
 export class SmartFileTransport implements Transport {
   constructor(

@@ -1,4 +1,4 @@
-import type { LogEntry, Transport } from '../index';
+import type { LogEntry, Transport } from '../../index';
 
 export class IpcTransport implements Transport {
   constructor(private send = process.send) {}
