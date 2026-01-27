@@ -91,7 +91,7 @@ plainlog is especially well-suited for:
 ## Installation
 
 ```bash
-npm install logger-kit
+npm install plainlog
 ```
 
 ---
@@ -99,7 +99,7 @@ npm install logger-kit
 ## Basic Usage
 
 ```ts
-import { Logger } from "logger-kit";
+import { Logger } from "plainlog";
 
 const logger = new Logger("info");
 
@@ -117,7 +117,7 @@ Logs are structured objects internally and only formatted by transports.
 ### Console (browser & Node)
 
 ```ts
-import { ConsoleTransport } from "logger-kit/transports";
+import { ConsoleTransport } from "plainlog/transports";
 
 logger.use(new ConsoleTransport());
 ```
@@ -125,7 +125,7 @@ logger.use(new ConsoleTransport());
 ### JSON Console
 
 ```ts
-import { JsonConsoleTransport } from "logger-kit/transports";
+import { JsonConsoleTransport } from "plainlog/transports";
 
 logger.use(new JsonConsoleTransport());
 ```
@@ -133,7 +133,7 @@ logger.use(new JsonConsoleTransport());
 ### Silent (useful for tests)
 
 ```ts
-import { SilentConsoleTransport } from "logger-kit/transports";
+import { SilentConsoleTransport } from "plainlog/transports";
 
 logger.use(new SilentConsoleTransport());
 ```
@@ -143,7 +143,7 @@ logger.use(new SilentConsoleTransport());
 ## Node-Only Transports
 
 ```ts
-import { FileTransport } from "logger-kit/transports/node";
+import { FileTransport } from "plainlog/transports/node";
 
 logger.use(new FileTransport("./app.log"));
 ```
@@ -282,7 +282,7 @@ Runs for:
 ### Implement a Transport
 
 ```ts
-import type { Transport, LogEntry } from "logger-kit";
+import type { Transport, LogEntry } from "plainlog";
 
 class MyTransport implements Transport {
   async log(entry: LogEntry) {
@@ -297,8 +297,8 @@ class MyTransport implements Transport {
 ### Or use `createTransport()`
 
 ```ts
-import { createTransport } from "logger-kit";
-import { prettyFormatter } from "logger-kit/formatter";
+import { createTransport } from "plainlog";
+import { prettyFormatter } from "plainlog/formatter";
 
 const transport = createTransport(console.log, prettyFormatter);
 logger.use(transport);
@@ -311,7 +311,7 @@ logger.use(transport);
 For quick setup with sane defaults:
 
 ```ts
-import { createLogger } from "logger-kit";
+import { createLogger } from "plainlog";
 
 const logger = createLogger({
   level: "info",
