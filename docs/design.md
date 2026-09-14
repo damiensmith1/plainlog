@@ -22,6 +22,11 @@ See [[requirements]] for the full feature list this implements, and
   browser bundle
 
 Build via `tsup` to dual ESM/CJS + `.d.ts`, published as `plainlog` on npm.
+Build config lives in `tsup.config.ts`, not CLI flags in `package.json`'s
+`build` script — the entry list there must cover every path (including
+individual transport files) that `package.json`'s `exports` map promises,
+and `outExtension` must keep CJS output as `.cjs` / ESM as `.js` to match
+those `exports` conditions exactly.
 
 ## Key decisions
 
@@ -41,6 +46,17 @@ Build via `tsup` to dual ESM/CJS + `.d.ts`, published as `plainlog` on npm.
 > Default logging calls don't block. `*Async` variants exist specifically
 > for tests, shutdown sequences, and error paths where ordering/completion
 > needs to be deterministic.
+
+> [!note] `"type": "module"` + explicit tsup entries, not implicit build
+> A CLI-only build script (`tsup src/index.ts ...`) silently drifted from
+> the `exports` map over time — a build script change stopped generating
+> individual transport files while `package.json` still promised them at
+> `./transports/*`, and the CJS/ESM output extensions (`.js`/`.mjs`)
+> never matched what `exports`/`main` declared (`.cjs`/`.js`), breaking
+> `require('plainlog')` entirely (1.0.0). Fixed in 1.0.1 by moving the
+> build to `tsup.config.ts` with an explicit entry list mirroring
+> `exports`, an `outExtension` matching those conditions, and declaring
+> `"type": "module"` so the `.js` ESM output isn't ambiguous to Node.
 
 ## Open questions
 
