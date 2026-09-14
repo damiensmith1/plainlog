@@ -1,9 +1,10 @@
 {
   "name": "plainlog",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A lightweight, pluggable, and testable logger for modern apps (Node + browser).",
   "license": "MIT",
   "author": "Damien Smith",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/damiensmith1/plainlog"
@@ -69,7 +70,7 @@
   ],
 
   "scripts": {
-    "build": "tsup src/index.ts src/formatter.ts src/transports/index.ts src/transports/node/index.ts --format esm,cjs --dts",
+    "build": "tsup",
     "test": "vitest"
   },
 
