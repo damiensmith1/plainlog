@@ -58,6 +58,21 @@ those `exports` conditions exactly.
 > `exports`, an `outExtension` matching those conditions, and declaring
 > `"type": "module"` so the `.js` ESM output isn't ambiguous to Node.
 
+> [!note] Async transports must track their own in-flight writes for `flush()` to mean anything
+> `Logger.flush()` only awaits transports that implement an optional
+> `flush()`. `FileTransport`, `SmartFileTransport`, and `HttpTransport` did
+> async work in `log()` (file appends, HTTP POSTs) but never implemented
+> `flush()`, so `logger.flush()` silently returned before their writes
+> landed — the opposite of the "awaitable when it matters" goal above.
+> Fixed in 1.0.2: each now tracks its pending write(s) and implements
+> `flush()` to await them. `FileTransport` chains writes into a single
+> sequential promise (same file, so also fixes write-ordering under
+> concurrent calls); `SmartFileTransport` and `HttpTransport` track a
+> `Set` of in-flight promises instead, since their writes target
+> independent files/requests and don't need to be serialized. Any new
+> async transport must follow this pattern or `flush()`/`close()` will
+> silently lie about completion for it.
+
 ## Open questions
 
 - Is `colorette` (only runtime dependency) worth keeping vs. inlining a
