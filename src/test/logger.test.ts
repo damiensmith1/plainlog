@@ -169,6 +169,19 @@ describe("Logger", () => {
     );
   });
 
+  it("clears the timeout once a transport finishes", async () => {
+    vi.useFakeTimers();
+    const spy = vi.fn();
+    const quick = new Logger("info");
+    quick.setErrorHandler(spy);
+    quick.use({ log() {} });
+
+    await quick.infoAsync("done");
+
+    expect(vi.getTimerCount()).toBe(0);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it("transport timeout triggers error handler", async () => {
     vi.useFakeTimers();
     const spy = vi.fn();

@@ -94,14 +94,18 @@ class LoggerCore {
   }
 
   private async safeLog(t: Transport, entry: LogEntry) {
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Log timeout')), this.logTimeoutMs)
-    );
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Log timeout')), this.logTimeoutMs);
+    });
 
     try {
       await Promise.race([Promise.resolve(t.log(entry)), timeout]);
     } catch (err) {
       this.handleError(err, { transport: t, entry });
+    } finally {
+      // A pending timer would hold a short-lived process (a CLI) open for logTimeoutMs.
+      clearTimeout(timer);
     }
   }
 

@@ -40,7 +40,10 @@ those `exports` conditions exactly.
 > Each transport call is timeout-protected and failures route through a
 > single `setErrorHandler` instead of throwing. A bad transport (e.g. a
 > flaky HTTP sink) degrades gracefully instead of taking down logging — or
-> the app — with it.
+> the app — with it. The timeout's timer is cleared as soon as the
+> transport settles: until 1.0.2 it was left running, so every log call
+> held a short-lived process (a CLI) open for `logTimeoutMs` (~1 s by
+> default) before it could exit. Found using plainlog in cairn.
 
 > [!note] Fire-and-forget by default, awaitable when it matters
 > Default logging calls don't block. `*Async` variants exist specifically
@@ -81,3 +84,7 @@ those `exports` conditions exactly.
 - Versioning/semver policy for transport interface changes as more
   transports get added
 - Whether a docs site is worth it vs. README + this doc set being sufficient
+- The test run doesn't exit on Node 23 with vitest 0.34: every test passes,
+  then the process stays alive (and `npm test` is watch mode anyway).
+  Upgrading vitest is the likely fix; `test-browser/` also still imports
+  the package's old name (`logger-kit`), which fails `tsc`.
